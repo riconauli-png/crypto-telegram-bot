@@ -6,18 +6,19 @@ TELEGRAM_TOKEN = "8926246749:AAH7f9z5NzJn31ZM12o3ofd0ZRTXtdBhDzo"
 TELEGRAM_CHAT_ID = "1741011462"
 OPENROUTER_API_KEY = "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"
 
+# Daftar Model AI Gratis Terbaru & Paling Stabil
 FREE_MODELS = [
-    "openrouter/free",
     "google/gemini-2.0-flash-lite-001:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "qwen/qwen-2.5-72b-instruct:free",
-    "mistralai/mistral-7b-instruct:free"
+    "deepseek/deepseek-r1:free",
+    "openrouter/free"
 ]
 
-# AMBANG BATASE / KRITERIA RADAR ALERT
-MIN_1H_CHANGE = 2.5      # Lonjakan minimum 2.5% dalam 1 jam
-MIN_24H_CHANGE = 8.0     # Lonjakan minimum 8.0% dalam 24 jam
-MIN_VOL_RATIO = 25.0     # Rasio Volume ke Market Cap (Aktivitas transaksi tinggi >= 25%)
+# KRITERIA RADAR ALERT
+MIN_1H_CHANGE = 2.0      # Lonjakan minimum 2.0% dalam 1 jam
+MIN_24H_CHANGE = 7.0     # Lonjakan minimum 7.0% dalam 24 jam
+MIN_VOL_RATIO = 20.0     # Rasio Volume ke Market Cap >= 20%
 
 def get_crypto_data():
     try:
@@ -25,7 +26,7 @@ def get_crypto_data():
         params = {
             "vs_currency": "idr",
             "order": "market_cap_desc",
-            "per_page": 50,  # Memindai Top 50 Koin Pasar
+            "per_page": 50,
             "page": 1,
             "sparkline": "false",
             "price_change_percentage": "1h,24h"
@@ -46,10 +47,8 @@ def filter_surging_coins(coins):
         volume = c.get("total_volume") or 0
         mcap = c.get("market_cap") or 1
 
-        # Menganalisis rasio aktivitas transaksi perdagangan terhadap total kapitalisasi pasar
         vol_mcap_ratio = (volume / mcap) * 100 if mcap > 0 else 0
 
-        # Jika koin memenuhi salah satu kriteria lonjakan:
         if change_1h >= MIN_1H_CHANGE or change_24h >= MIN_24H_CHANGE or vol_mcap_ratio >= MIN_VOL_RATIO:
             alert_coins.append({
                 "name": c['name'],
@@ -88,13 +87,14 @@ def analyze_alerts_with_ai(alert_coins):
     }
 
     for model in FREE_MODELS:
-        print(f"Mencoba AI: {model}")
+        print(f"Mencoba AI Model: {model}")
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}]
         }
         try:
             res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=25)
+            print(f"Respon Status ({model}): {res.status_code}")
             if res.status_code == 200:
                 result = res.json()
                 if "choices" in result and len(result["choices"]) > 0:
