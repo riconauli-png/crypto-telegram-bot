@@ -2,8 +2,7 @@ name: Daily Crypto Bot Execution
 
 on:
   schedule:
-    # Jam 00:00 UTC = Jam 07:00 WIB
-    - cron: '0 0 * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
