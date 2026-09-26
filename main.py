@@ -2,11 +2,10 @@ import requests
 import json
 import os
 
-TELEGRAM_TOKEN = "7832870347:AAFW3lE-aI6s4O_J-A-eG2O_qQfS0iQ4kR0"
+TELEGRAM_TOKEN = "8926246749:AAH7f9z5NzJn31ZM12o3ofd0ZRTXtdBhDzo"
 TELEGRAM_CHAT_ID = "612808027"
 OPENROUTER_API_KEY = "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"
 
-# Daftar Model AI Gratis yang Paling Stabil & Respon Cepat
 FREE_MODELS = [
     "google/gemini-2.0-flash-lite-001:free",
     "meta-llama/llama-3.3-70b-instruct:free",
@@ -77,7 +76,8 @@ def send_telegram(text):
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text
     }
-    requests.post(url, json=payload, timeout=10)
+    res = requests.post(url, json=payload, timeout=10)
+    print(f"Status Respon Telegram: {res.status_code} - {res.text}")
 
 def main():
     print("1. Mengambil data pasar...")
