@@ -6,18 +6,19 @@ TELEGRAM_TOKEN = "8926246749:AAH7f9z5NzJn31ZM12o3ofd0ZRTXtdBhDzo"
 TELEGRAM_CHAT_ID = "1741011462"
 OPENROUTER_API_KEY = "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"
 
-# Daftar Model AI Gratis Terbaru & Paling Stabil
+# Daftar Model AI Gratis di OpenRouter
 FREE_MODELS = [
     "google/gemini-2.0-flash-lite-001:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "qwen/qwen-2.5-72b-instruct:free",
     "deepseek/deepseek-r1:free",
+    "mistralai/mistral-7b-instruct:free",
     "openrouter/free"
 ]
 
 # KRITERIA RADAR ALERT
-MIN_1H_CHANGE = 2.0      # Lonjakan minimum 2.0% dalam 1 jam
-MIN_24H_CHANGE = 7.0     # Lonjakan minimum 7.0% dalam 24 jam
+MIN_1H_CHANGE = 2.0      # Naik minimal 2.0% dalam 1 jam terakhir
+MIN_24H_CHANGE = 7.0     # Naik minimal 7.0% dalam 24 jam terakhir
 MIN_VOL_RATIO = 20.0     # Rasio Volume ke Market Cap >= 20%
 
 def get_crypto_data():
@@ -61,22 +62,24 @@ def filter_surging_coins(coins):
             })
     return alert_coins
 
-def analyze_alerts_with_ai(alert_coins):
-    summary_text = ""
+def format_coins_list(alert_coins):
+    text_lines = []
     for c in alert_coins:
-        summary_text += f"- {c['name']} ({c['symbol']}): Rp {c['price_idr']:,} | 1h: +{c['change_1h']:.2f}% | 24h: +{c['change_24h']:.2f}% | Vol/MC Ratio: {c['vol_mcap_ratio']:.1f}%\n"
+        line = f"• {c['name']} ({c['symbol']})\n  Harga: Rp {c['price_idr']:,}\n  Naik 1j: +{c['change_1h']:.2f}% | Naik 24j: +{c['change_24h']:.2f}%\n  Aktivitas Transaksi (Vol/MC): {c['vol_mcap_ratio']:.1f}%\n"
+        text_lines.append(line)
+    return "\n".join(text_lines)
 
+def analyze_alerts_with_ai(data_summary):
     prompt = f"""
     Kamu adalah AI Radar Scanner Crypto profesional untuk investor Indonesia.
     Berikut koin yang mendadak mengalami lonjakan volume/harga saat ini:
 
-    {summary_text}
+    {data_summary}
 
-    Berikan analisis kilat & panduan tindakan singkat (maksimal 3-4 poin ringkas) untuk koin di atas:
+    Berikan analisis kilat & panduan tindakan singkat (maksimal 3 poin ringkas) dalam Bahasa Indonesia:
     - Indikasi penyebab lonjakan / potensi akumulasi.
-    - Area perhatian (Breakout / Volatilitas Tinggi).
-    - Panduan tindakan simpel untuk investor (misal: Entry Bertahap, Wait & See, atau Watchlist).
-    Gunakan bahasa Indonesia yang jelas, profesional, tanpa simbol Markdown rumit.
+    - Panduan tindakan simpel untuk investor (Entry Bertahap / Wait & See / Watchlist).
+    Gunakan bahasa yang jelas, profesional, tanpa simbol Markdown rumit.
     """
 
     headers = {
@@ -93,7 +96,7 @@ def analyze_alerts_with_ai(alert_coins):
             "messages": [{"role": "user", "content": prompt}]
         }
         try:
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=25)
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=20)
             print(f"Respon Status ({model}): {res.status_code}")
             if res.status_code == 200:
                 result = res.json()
@@ -101,11 +104,13 @@ def analyze_alerts_with_ai(alert_coins):
                     text_content = result["choices"][0]["message"]["content"]
                     if text_content and len(text_content.strip()) > 0:
                         return text_content
+            else:
+                print(f"Model {model} response: {res.status_code} - {res.text}")
         except Exception as e:
             print(f"Model {model} error: {e}")
             continue
 
-    return "⚠️ Lonjakan terdeteksi, namun analisis mendalam AI sedang tidak tersedia."
+    return None
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -132,10 +137,15 @@ def main():
 
     print(f"Ditemukan {len(surging_coins)} koin mengalami lonjakan!")
 
-    print("3. Meminta analisis kilat AI...")
-    ai_analysis = analyze_alerts_with_ai(surging_coins)
+    coins_formatted = format_coins_list(surging_coins)
 
-    final_message = f"🚨 RADAR SCANNER: SINYAL LONJAKAN DETECTED!\n\n{ai_analysis}\n\n---\n*Bot Radar Scanner Real-Time*"
+    print("3. Meminta analisis kilat AI...")
+    ai_analysis = analyze_alerts_with_ai(coins_formatted)
+
+    if ai_analysis:
+        final_message = f"🚨 RADAR SCANNER: SINYAL LONJAKAN DETECTED!\n\n📊 KOIN TERDETEKSI:\n{coins_formatted}\n💡 ANALISIS & SARAN AI:\n{ai_analysis}\n\n---\n*Bot Radar Scanner Real-Time*"
+    else:
+        final_message = f"🚨 RADAR SCANNER: SINYAL LONJAKAN DETECTED!\n\n📊 KOIN TERDETEKSI:\n{coins_formatted}\n⚠️ Analisis AI sedang padat, namun data lonjakan di atas terdeteksi valid.\n\n---\n*Bot Radar Scanner Real-Time*"
 
     print("4. Mengirim sinyal ALERT ke Telegram...")
     send_telegram(final_message)
